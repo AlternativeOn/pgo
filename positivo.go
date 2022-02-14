@@ -14,6 +14,18 @@ type Token struct {
 	TokenType    string `json:"token_type"`
 }
 
+type UserInfo struct {
+	Sub           string `json:"sub"`
+	AuthTime      int    `json:"auth_time"`
+	Idp           string `json:"idp"`
+	Name          string `json:"name"`
+	Username      string `json:"username"`
+	Email         string `json:"email"`
+	IntegrationID string `json:"integration_id"`
+	Amr           string `json:"amr"`
+	Schools       string `json:"schools"`
+}
+
 type Error struct {
 	Error            string `json:"error"`
 	ErrorDescription string `json:"error_description"`
@@ -60,4 +72,49 @@ func Login(username string, password string) (string, error) {
 
 func GetHomework(token string) string {
 	return "https://plus-app.studos.com.br/auth/psd?jwt=" + token + "&redirect=/student/central"
+} //Retorna a url de acesso ao portal do aluno
+
+func GetBooks(token string) (string, error) {
+	return tokenRequest("https://livro-digital-estante.prd.positivoon.com.br/v3/livros?busca=&componenteCurricular=&nivelEnsino=&serie=&volume=", "GET", token)
+} //Retorna um json com os livros do aluno
+
+func GetUserinfo(token string) (string, string, error) {
+	userinforesponse, err := tokenRequest("http://sso.specomunica.com.br/connect/userinfo", "GET", token)
+	if err != nil {
+		return "", "Um erro aconteceu:", err
+	}
+	//Unmarshal response
+	var userInfo UserInfo
+	json.Unmarshal([]byte(userinforesponse), &userInfo)
+	//return schools id and role
+	return userInfo.Schools, userInfo.Username, nil
+
+} //Retorna um json com os dados do usuário
+
+func tokenRequest(url string, method string, token string) (string, error) {
+	client := &http.Client{}
+
+	req, err := http.NewRequest(method, url, nil)
+
+	if err != nil {
+		return "Não foi possível criar a requesição:", err
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+token)
+
+	res, err := client.Do(req)
+
+	if err != nil {
+		return "Não foi possível enviar a requisão:", err
+	}
+
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return "Não foi possível ler a resposta:", err
+	}
+
+	return string(body), nil
 }

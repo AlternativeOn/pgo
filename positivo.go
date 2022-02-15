@@ -14,16 +14,26 @@ type Token struct {
 	TokenType    string `json:"token_type"`
 }
 
-type UserInfo struct {
-	Sub           string `json:"sub"`
-	AuthTime      int    `json:"auth_time"`
-	Idp           string `json:"idp"`
-	Name          string `json:"name"`
-	Username      string `json:"username"`
-	Email         string `json:"email"`
-	IntegrationID string `json:"integration_id"`
-	Amr           string `json:"amr"`
-	Schools       string `json:"schools"`
+type Solutions []struct {
+	ID       string     `json:"id"`
+	Nome     string     `json:"nome"`
+	Cor      string     `json:"cor"`
+	Ordem    int        `json:"ordem"`
+	Ativo    bool       `json:"ativo"`
+	Solucoes []Solucoes `json:"solucoes"`
+}
+type Solucoes struct {
+	ID               string `json:"id"`
+	Nome             string `json:"nome"`
+	Descricao        string `json:"descricao"`
+	Arquivo          string `json:"arquivo"`
+	Link             string `json:"link"`
+	Ativo            bool   `json:"ativo"`
+	TipoRenderizacao string `json:"tipoRenderizacao"`
+	Slug             string `json:"slug"`
+	Ordem            int    `json:"ordem"`
+	DataCadastro     string `json:"dataCadastro"`
+	Novo             bool   `json:"novo"`
 }
 
 type Error struct {
@@ -74,20 +84,28 @@ func GetHomework(token string) string {
 	return "https://plus-app.studos.com.br/auth/psd?jwt=" + token + "&redirect=/student/central"
 } //Retorna a url de acesso ao portal do aluno
 
+func GetMessages(token string) string {
+	return "https://web.specomunica.com.br/link/feed?jwt=" + token
+}
+
+func RequestSupport(token string) string {
+	return "https://web.specomunica.com.br/link/atendimento?jwt=" + token
+}
+
+func GetAgenda(token string) string {
+	return "https://web.specomunica.com.br/link/agenda?jwt=" + token
+}
+
 func GetBooks(token string) (string, error) {
 	return tokenRequest("https://livro-digital-estante.prd.positivoon.com.br/v3/livros?busca=&componenteCurricular=&nivelEnsino=&serie=&volume=", "GET", token)
 } //Retorna um json com os livros do aluno
 
-func GetUserinfo(token string) (string, string, error) {
+func GetUserinfo(token string) (string, error) {
 	userinforesponse, err := tokenRequest("http://sso.specomunica.com.br/connect/userinfo", "GET", token)
 	if err != nil {
-		return "", "Um erro aconteceu:", err
+		return "Um erro aconteceu:", err
 	}
-	//Unmarshal response
-	var userInfo UserInfo
-	json.Unmarshal([]byte(userinforesponse), &userInfo)
-	//return schools id and role
-	return userInfo.Schools, userInfo.Username, nil
+	return userinforesponse, nil
 
 } //Retorna um json com os dados do usuário
 

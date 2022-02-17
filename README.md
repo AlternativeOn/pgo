@@ -4,9 +4,9 @@
 
 Note que essa é uma documentação não oficial. Ela pode estar errada ou desatualizada em alguns aspectos. Aqui você vai encontrar a documentação do o que encontramos ate agora.
 
-## Want to jump right in?
+## Quer pular de cabeça?
 
-Feeling like an eager beaver? Jump in to the quick start docs and get making your first request:
+Se sentindo como um explorador do desconhecido? Acesse a documentação para início rápido e faça sua primeira _request_:
 
 {% content-ref url="quick-start.md" %}
 [quick-start.md](quick-start.md)

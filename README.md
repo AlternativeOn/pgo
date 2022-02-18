@@ -12,9 +12,9 @@ Se sentindo como um explorador do desconhecido? Acesse a documentação para in�
 [quick-start.md](quick-start.md)
 {% endcontent-ref %}
 
-## Want to deep dive?
+## Quer ir ainda mais fundo?
 
-Dive a little deeper and start exploring our API reference to get an idea of everything that's possible with the API:
+Venha mergulhar um pouco mais fundo e comece a explorar nossa documentação da API para ter uma ideia de tudo o que é possível com a API do Positivo:
 
 {% content-ref url="reference/api-reference/" %}
 [api-reference](reference/api-reference/)

@@ -1,46 +1,37 @@
-# Pets
+---
+description: Aqui você obtêm todas as informações necessárias sobre o usuário.
+---
 
-## Creating a new pet
+# Userinfo
 
-{% swagger baseUrl="https://api.myapi.com/v1" method="post" path="/pet" summary="Create pet." %}
+## Obtendo as informações
+
+{% swagger baseUrl="https://sso.specomunica.com.br/connect" method="get" path="/userinfo" summary="Obter as informações do usuário" %}
 {% swagger-description %}
-Creates a new pet.
+Sua token vai ser usada aqui.
 {% endswagger-description %}
 
-{% swagger-parameter in="body" name="name" required="true" type="string" %}
-The name of the pet
+{% swagger-parameter in="header" name="Bearer " required="true" type="string" %}
+SUA_TOKEN
 {% endswagger-parameter %}
 
-{% swagger-parameter in="body" name="owner_id" required="false" type="string" %}
-The 
-
-`id`
-
- of the user who owns the pet
-{% endswagger-parameter %}
-
-{% swagger-parameter in="body" name="species" required="false" type="string" %}
-The species of the pet
-{% endswagger-parameter %}
-
-{% swagger-parameter in="body" name="breed" required="false" type="string" %}
-The breed of the pet
-{% endswagger-parameter %}
-
-{% swagger-response status="200" description="Pet successfully created" %}
+{% swagger-response status="200" description="Tudo está ok!" %}
 ```javascript
 {
-    "name"="Wilson",
-    "owner": {
-        "id": "sha7891bikojbkreuy",
-        "name": "Samuel Passet",
-    "species": "Dog",}
-    "breed": "Golden Retriever",
+    "sub": "ID Único",
+    "auth_time": 1645217796,
+    "idp": "local",
+    "name": "Rebecca Silva",
+    "username": "rs2005",
+    "email": "",
+    "integration_id": "ID da integração",
+    "amr": "pwd",
+    "schools": "{\"id\":\"ID único da escola\",\"integration_id\":\"ID da integração (escola)\",\"user_id\":\"ID da escola\",\"name\":\"Nome de sua escola\",\"roles\":[\"ALUNO\"],\"time_zone\":\"E. South America Standard Time\",\"url\":\"psdXXXX.specomunica.com.br\"}"
 }
 ```
 {% endswagger-response %}
 
-{% swagger-response status="401" description="Permission denied" %}
+{% swagger-response status="400: Bad Request" description="Algo está errado, verifique a token" %}
 
 {% endswagger-response %}
 {% endswagger %}

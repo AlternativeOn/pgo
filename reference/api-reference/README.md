@@ -1,6 +1,13 @@
-# API Reference
+# Referência da API
 
-Dive into the specifics of each API endpoint by checking out our complete documentation.
+Mergulhe nas especificidades de cada endpoint da API consultando na nossa documentação.\
+_Note que talvez essa documentação pode estar desatualizada, incompleta ou incoerente._
+
+## Token
+
+Para começarmos de cabeça, primeiro você precisa saber como pegar sua token, aqui tem os passos necessários para pegá-la
+
+
 
 ## Pets
 

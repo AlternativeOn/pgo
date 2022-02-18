@@ -7,5 +7,5 @@
 
 * [Referência da API](reference/api-reference/README.md)
   * [Token](reference/api-reference/token.md)
-  * [Userinfo](reference/api-reference/pets.md)
-  * [Users](reference/api-reference/users.md)
+  * [Userinfo](reference/api-reference/userinfo.md)
+  * [Soluções](reference/api-reference/users.md)

@@ -4,8 +4,8 @@
 
 Logo após obter sua token, talvez você queira obter as informações do usuário, veja abaixo para saber mais!
 
-{% content-ref url="pets.md" %}
-[pets.md](pets.md)
+{% content-ref url="userinfo.md" %}
+[userinfo.md](userinfo.md)
 {% endcontent-ref %}
 
 {% swagger baseUrl="https://sso.specomunica.com.br/connect" method="get" path="/token" summary="Obter a token" %}

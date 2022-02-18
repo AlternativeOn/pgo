@@ -6,7 +6,7 @@ description: >-
 
 # Soluções
 
-{% swagger method="get" path="?usuarioid=" baseUrl="https://apihub.positivoon.com.br/api/NivelEnsino" summary="" %}
+{% swagger method="get" path="?usuarioid=" baseUrl="https://apihub.positivoon.com.br/api/NivelEnsino" summary="Obtêm as turma em que o usuário está matriculado." %}
 {% swagger-description %}
 Essa request retorna em qual turma e série o usuário está.
 {% endswagger-description %}

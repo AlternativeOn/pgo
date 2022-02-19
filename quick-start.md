@@ -87,7 +87,7 @@ O valor desse parâmetro é
 
 Talvez você também queira pegar as informações do usuário, elas serão bem importantes em quase todas as outras requisições que for fazer
 
-{% swagger baseUrl="https://sso.specomunica.com.br" method="get" path="/userinfo" summary="Obter as informações do usuário" %}
+{% swagger baseUrl="https://sso.specomunica.com.br" method="get" path="/connect/userinfo" summary="Obter as informações do usuário" %}
 {% swagger-description %}
 Sua token será usada aqui. Nos próximos exemplos ela não será mais lembrada, mas lembre-se que ela sempre vai ser necessária para qualquer outra requisição.
 {% endswagger-description %}

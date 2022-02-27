@@ -138,7 +138,7 @@ go get -u github.com/alternativeon/pgo
 
 Para fazer sua primeira requisição, enviar uma solicitação autenticada para o endpoint `NivelEnsino`. Isso vai lhe mostrar em qual turma o usuário está.
 
-{% swagger method="get" path="/api/NivelEnsino" baseUrl="https://apihub.positivoon.com.br" summary="Obtêm as turma em que o usuário está matriculado." %}
+{% swagger method="get" path="/api/NivelEnsino" baseUrl="https://apihub.positivoon.com.br" summary="Obtêm a turma em que o usuário está matriculado." %}
 {% swagger-description %}
 Essa request retorna em qual turma e série o usuário está.
 {% endswagger-description %}

@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+        "errors"
 )
 
 type Token struct {
@@ -105,7 +106,7 @@ func Login(username string, password string) (string, error) {
 		//Unmarshal error response
 		var errResp Error
 		json.Unmarshal(body, &errResp)
-		return "Não foi possível fazer a autenticação: " + errResp.ErrorDescription, err
+		return "", errors.New("Não foi possível fazer a autenticação: " + errResp.ErrorDescription)
 	}
 	//Unmarshal response
 	var token Token

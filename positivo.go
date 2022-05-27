@@ -83,7 +83,7 @@ func Login(username string, password string) (string, error) {
 	req, err := http.NewRequest("POST", "https://sso.specomunica.com.br/connect/token", strings.NewReader("username="+username+"&password="+password+"&grant_type=password&client_id=hubpsd&client_secret=DA5730D8-90FF-4A41-BFED-147B8E0E2A08&scope=openid%20offline_access%20integration_info"))
 
 	if err != nil {
-		return "Não foi possível criar a requesição:", err
+		return "", errors.New("Não foi possível criar a requesição:" + err)
 	}
 
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
@@ -91,14 +91,14 @@ func Login(username string, password string) (string, error) {
 	res, err := client.Do(req)
 
 	if err != nil {
-		return "Não foi possível enviar a requisão:", err
+		return "", errors.New("Não foi possível enviar a requisão:" + err)
 	}
 
 	defer res.Body.Close()
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return "Não foi possível ler a resposta:", err
+		return "", errors.New("Não foi possível ler a resposta:" + err)
 	}
 
 	//Check if response is valid
@@ -118,15 +118,12 @@ func Login(username string, password string) (string, error) {
 func GetUserInfo(token string) (string, string, string, error) {
 	userinforesponse, err := tokenRequest("https://sso.specomunica.com.br/connect/userinfo", "GET", token)
 	if err != nil {
-		return "Um erro aconteceu:", "", "", err
+		return "", "", "", errors.New("Um erro aconteceu:" + err)
 	}
 	var userinfo Userinfo
 	json.Unmarshal([]byte(userinforesponse), &userinfo)
-	//fmt.Println(userinfo)
-	//fmt.Println(userinfo.Schools)
 	var school School
 	json.Unmarshal([]byte(userinfo.Schools), &school)
-	//fmt.Println(school)
 	return school.ID, school.UserID, school.Roles[0], nil
 
 } //Retorna o id da escola, o id do usuário e o papel do usuário
@@ -177,7 +174,7 @@ func tokenRequest(url string, method string, token string) (string, error) {
 	req, err := http.NewRequest(method, url, nil)
 
 	if err != nil {
-		return "Não foi possível criar a requesição:", err
+		return "", errors.New("Não foi possível criar a requesição:" + err)
 	}
 
 	req.Header.Add("Content-Type", "application/json")
@@ -186,14 +183,14 @@ func tokenRequest(url string, method string, token string) (string, error) {
 	res, err := client.Do(req)
 
 	if err != nil {
-		return "Não foi possível enviar a requisão:", err
+		return "", errors.New("Não foi possível enviar a requisão:" + err)
 	}
 
 	defer res.Body.Close()
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return "Não foi possível ler a resposta:", err
+		return "", errors.New("Não foi possível ler a resposta:" + err)
 	}
 
 	return string(body), nil

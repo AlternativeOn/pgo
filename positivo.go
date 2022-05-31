@@ -2,10 +2,10 @@ package pgo
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"strings"
-        "errors"
 )
 
 type Token struct {
@@ -83,7 +83,7 @@ func Login(username string, password string) (string, error) {
 	req, err := http.NewRequest("POST", "https://sso.specomunica.com.br/connect/token", strings.NewReader("username="+username+"&password="+password+"&grant_type=password&client_id=hubpsd&client_secret=DA5730D8-90FF-4A41-BFED-147B8E0E2A08&scope=openid%20offline_access%20integration_info"))
 
 	if err != nil {
-		return "", errors.New("Não foi possível criar a requesição:" + err)
+		return "", errors.New("Não foi possível criar a requesição:" + err.Error())
 	}
 
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
@@ -91,14 +91,14 @@ func Login(username string, password string) (string, error) {
 	res, err := client.Do(req)
 
 	if err != nil {
-		return "", errors.New("Não foi possível enviar a requisão:" + err)
+		return "", errors.New("Não foi possível enviar a requisão:" + err.Error())
 	}
 
 	defer res.Body.Close()
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return "", errors.New("Não foi possível ler a resposta:" + err)
+		return "", errors.New("Não foi possível ler a resposta:" + err.Error())
 	}
 
 	//Check if response is valid
@@ -118,7 +118,7 @@ func Login(username string, password string) (string, error) {
 func GetUserInfo(token string) (string, string, string, error) {
 	userinforesponse, err := tokenRequest("https://sso.specomunica.com.br/connect/userinfo", "GET", token)
 	if err != nil {
-		return "", "", "", errors.New("Um erro aconteceu:" + err)
+		return "", "", "", errors.New("Um erro aconteceu:" + err.Error())
 	}
 	var userinfo Userinfo
 	json.Unmarshal([]byte(userinforesponse), &userinfo)
@@ -127,6 +127,17 @@ func GetUserInfo(token string) (string, string, string, error) {
 	return school.ID, school.UserID, school.Roles[0], nil
 
 } //Retorna o id da escola, o id do usuário e o papel do usuário
+
+func GetUserName(token string) (string, error) {
+	//Retorna o nome do usuário
+	userinforesponse, err := tokenRequest("https://sso.specomunica.com.br/connect/userinfo", "GET", token)
+	if err != nil {
+		return "", errors.New("Um erro aconteceu:" + err.Error())
+	}
+	var usrname Userinfo
+	json.Unmarshal([]byte(userinforesponse), &usrname)
+	return usrname.Name, nil
+}
 
 func GetClass(token string, userId string) (string, error) {
 	getclassresponse, err := tokenRequest("https://apihub.positivoon.com.br/api/NivelEnsino?usuarioId="+userId, "GET", token)
@@ -174,7 +185,7 @@ func tokenRequest(url string, method string, token string) (string, error) {
 	req, err := http.NewRequest(method, url, nil)
 
 	if err != nil {
-		return "", errors.New("Não foi possível criar a requesição:" + err)
+		return "", errors.New("Não foi possível criar a requesição:" + err.Error())
 	}
 
 	req.Header.Add("Content-Type", "application/json")
@@ -183,14 +194,14 @@ func tokenRequest(url string, method string, token string) (string, error) {
 	res, err := client.Do(req)
 
 	if err != nil {
-		return "", errors.New("Não foi possível enviar a requisão:" + err)
+		return "", errors.New("Não foi possível enviar a requisão:" + err.Error())
 	}
 
 	defer res.Body.Close()
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return "", errors.New("Não foi possível ler a resposta:" + err)
+		return "", errors.New("Não foi possível ler a resposta:" + err.Error())
 	}
 
 	return string(body), nil

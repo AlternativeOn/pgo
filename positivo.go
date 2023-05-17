@@ -85,7 +85,6 @@ func Login(username string, password string) (*Token, error) {
 	_ = writer.WriteField("username", username)
 	err := writer.Close()
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 
@@ -126,11 +125,10 @@ func Login(username string, password string) (*Token, error) {
 	var respDoPrimeiroLogin LoginUsuario
 	err = json.Unmarshal(body, &respDoPrimeiroLogin)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	dadosDoPrimeiroLogin := respDoPrimeiroLogin.Dados
 	primeiraToken := dadosDoPrimeiroLogin.AccessToken
-	//fmt.Println(dadosDoPrimeiroLogin)
 
 	/* SEGUNDA PARTE DO LOGIN
 	* Sim, o login é divido em duas partes, para obter a token na escola selecionada.
@@ -139,13 +137,11 @@ func Login(username string, password string) (*Token, error) {
 	* É possivel mudar a seleção do index
 	*/
 	quantidadeEscolas := len(dadosDoPrimeiroLogin.Schools)
-	//fmt.Println("QE:", quantidadeEscolas)
 	if quantidadeEscolas >= 2 {
 		indexDaEscola = 1
 	}
 
 	escolaUsuario := dadosDoPrimeiroLogin.Schools[indexDaEscola]
-	fmt.Println(escolaUsuario.ID)
 
 	// Segunda request, para trocar a token
 	payload = &bytes.Buffer{}
@@ -155,7 +151,6 @@ func Login(username string, password string) (*Token, error) {
 	_ = writer.WriteField("school_id", escolaUsuario.ID)
 	err = writer.Close()
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 
@@ -192,7 +187,7 @@ func Login(username string, password string) (*Token, error) {
 	var respDoSegundoLogin LoginUsuario
 	err = json.Unmarshal(body, &respDoSegundoLogin)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	dadosDoSegundoLogin := respDoSegundoLogin.Dados
 

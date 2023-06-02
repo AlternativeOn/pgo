@@ -202,11 +202,11 @@ func Login(username string, password string) (*Token, error) {
 	return token, nil
 }
 
-func ObterRecursos(idEscola string, userToken string) *Recursos {
+func ObterRecursos(idEscola string, userToken string, tokenDoParceiro string) *Recursos {
 	msg := &Recursos{
-		Mensagens:   "https://web.escolaapp.com/link/feed?contextoId=" + idEscola + "&jwt=" + userToken,
-		Agenda:      "https://web.escolaapp.com/link/agenda?contextoId=" + idEscola + "&jwt=" + userToken,
-		Atendimento: "https://web.escolaapp.com/link/atendimento?contextoId=" + idEscola + "&jwt=" + userToken,
+		Mensagens:   "https://web.escolaapp.com/link/feed?contextoId=" + idEscola + "&jwt=" + tokenDoParceiro,
+		Agenda:      "https://web.escolaapp.com/link/agenda?contextoId=" + idEscola + "&jwt=" + tokenDoParceiro,
+		Atendimento: "https://web.escolaapp.com/link/atendimento?contextoId=" + idEscola + "&jwt=" + tokenDoParceiro,
 		Studos:      "https://plus-app.studos.com.br/auth/psd?jwt=" + userToken,
 	}
 

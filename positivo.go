@@ -184,7 +184,7 @@ func Login(username string, password string) (*Token, error) {
 	var respDoPrimeiroLogin LoginUsuario
 	err = json.Unmarshal(body, &respDoPrimeiroLogin)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	dadosDoPrimeiroLogin := respDoPrimeiroLogin.Dados
 	primeiraToken := dadosDoPrimeiroLogin.AccessToken
@@ -246,7 +246,7 @@ func Login(username string, password string) (*Token, error) {
 	var respDoSegundoLogin LoginUsuario
 	err = json.Unmarshal(body, &respDoSegundoLogin)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	dadosDoSegundoLogin := respDoSegundoLogin.Dados
 

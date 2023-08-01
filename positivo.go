@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"mime/multipart"
 	"net/http"
+	"runtime"
+	"strings"
 	"time"
 )
 
@@ -50,21 +52,21 @@ type LoginPrimitivoDadosEscola struct {
 }
 
 type LoginPrimitvoDadosUsuario struct {
-	Sub           string `json:"sub"`
-	AuthTime      int    `json:"auth_time"`
-	Idp           string `json:"idp"`
-	Name          string `json:"name"`
-	Username      string `json:"username"`
-	Email         string `json:"email"`
-	IntegrationID string `json:"integration_id"`
-	Amr           string `json:"amr"`
-	LoginPrimitivoDadosEscola       string `json:"schools"`
+	Sub                       string `json:"sub"`
+	AuthTime                  int    `json:"auth_time"`
+	Idp                       string `json:"idp"`
+	Name                      string `json:"name"`
+	Username                  string `json:"username"`
+	Email                     string `json:"email"`
+	IntegrationID             string `json:"integration_id"`
+	Amr                       string `json:"amr"`
+	LoginPrimitivoDadosEscola string `json:"schools"`
 }
 
 type LoginPrimitivoDadosSerie []struct {
-	Value  string   `json:"value"`
-	Label  string   `json:"label"`
-	LoginPrimitivoDadosTurma []Turmas `json:"turmas"`
+	Value string                     `json:"value"`
+	Label string                     `json:"label"`
+	Turma []LoginPrimitivoDadosTurma `json:"turmas"`
 }
 
 type LoginPrimitivoDadosTurma struct {
@@ -104,8 +106,13 @@ type Token struct { //Usado para retornar a token do usuário
 type TokenPrimitiva struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
-	ExpiresIn    int    `json:"expires_in"`
+	Expiration   int    `json:"expires_in"`
 	TokenType    string `json:"token_type"`
+}
+
+type DadosPrimitivos struct {
+	Nome            string
+	IdUsuarioEscola string
 }
 
 type Recursos struct {
@@ -121,6 +128,9 @@ type ErroPrimitivo struct {
 }
 
 var indexDaEscola = 0 //usado apenas quando necessário.
+const version = "2.1.0"
+
+var UserAgent = fmt.Sprintf("Mozilla/5.0 (%v; %v); pgo/%v (%v; %v); +(https://github.com/alternativeon/pgo)", runtime.GOOS, runtime.GOARCH, version, runtime.Compiler, runtime.Version())
 
 func Login(username string, password string) (*Token, error) {
 	/* PRIMEIRA PARTE DO LOGIN
@@ -133,12 +143,11 @@ func Login(username string, password string) (*Token, error) {
 	_ = writer.WriteField("username", username)
 	err := writer.Close()
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 
 	client := &http.Client{
-		Timeout: 5 * time.Second,
+		Timeout: 15 * time.Second,
 	}
 
 	req, err := http.NewRequest("POST", "https://apihub.positivoon.com.br/api/login/token", payload)
@@ -148,6 +157,7 @@ func Login(username string, password string) (*Token, error) {
 	}
 
 	req.Header.Add("Content-Type", writer.FormDataContentType())
+	req.Header.Add("User-Agent", UserAgent)
 
 	res, err := client.Do(req)
 
@@ -157,7 +167,7 @@ func Login(username string, password string) (*Token, error) {
 
 	defer res.Body.Close()
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, errors.New("Não foi possível ler a resposta:" + err.Error())
 	}
@@ -178,7 +188,6 @@ func Login(username string, password string) (*Token, error) {
 	}
 	dadosDoPrimeiroLogin := respDoPrimeiroLogin.Dados
 	primeiraToken := dadosDoPrimeiroLogin.AccessToken
-	//fmt.Println(dadosDoPrimeiroLogin)
 
 	/* SEGUNDA PARTE DO LOGIN
 	* Sim, o login é divido em duas partes, para obter a token na escola selecionada.
@@ -187,13 +196,11 @@ func Login(username string, password string) (*Token, error) {
 	* É possivel mudar a seleção do index
 	*/
 	quantidadeEscolas := len(dadosDoPrimeiroLogin.Schools)
-	//fmt.Println("QE:", quantidadeEscolas)
 	if quantidadeEscolas >= 2 {
 		indexDaEscola = 1
 	}
 
 	escolaUsuario := dadosDoPrimeiroLogin.Schools[indexDaEscola]
-	fmt.Println(escolaUsuario.ID)
 
 	// Segunda request, para trocar a token
 	payload = &bytes.Buffer{}
@@ -203,7 +210,6 @@ func Login(username string, password string) (*Token, error) {
 	_ = writer.WriteField("school_id", escolaUsuario.ID)
 	err = writer.Close()
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 
@@ -223,7 +229,7 @@ func Login(username string, password string) (*Token, error) {
 
 	defer res.Body.Close()
 
-	body, err = ioutil.ReadAll(res.Body)
+	body, err = io.ReadAll(res.Body)
 	if err != nil {
 		return nil, errors.New("Não foi possível ler a resposta:" + err.Error())
 	}
@@ -256,6 +262,7 @@ func Login(username string, password string) (*Token, error) {
 }
 
 func LegacyLogin(username string, password string) (*TokenPrimitiva, error) {
+	//Na versão 2.2 o login legado será integrado ao login principal.
 	client := &http.Client{
 		Timeout: 15 * time.Second,
 	}
@@ -273,7 +280,7 @@ func LegacyLogin(username string, password string) (*TokenPrimitiva, error) {
 	}
 	defer res.Body.Close()
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, errors.New("Não foi possível ler a resposta:" + err.Error())
 	}
@@ -290,20 +297,20 @@ func LegacyLogin(username string, password string) (*TokenPrimitiva, error) {
 	json.Unmarshal(body, &token)
 
 	res.Body.Close()
-	tokenLegada := &TokenPrimitiva {
-		AccessToken: token.AccessToken,
+	tokenLegada := &TokenPrimitiva{
+		AccessToken:  token.AccessToken,
 		RefreshToken: token.RefreshToken,
-		ExpiresIn: token.ExpiresIn,
-		TokenType: token.TokenType
+		Expiration:   token.Expiration,
+		TokenType:    token.TokenType,
 	}
 	return tokenLegada, nil
 }
 
-func ObterRecursos(idEscola string, userToken string) *Recursos {
+func ObterRecursos(idEscola string, userToken string, tokenParceiro string) *Recursos {
 	msg := &Recursos{
-		Mensagens:   "https://web.escolaapp.com/link/feed?contextoId=" + idEscola + "&jwt=" + userToken,
-		Agenda:      "https://web.escolaapp.com/link/agenda?contextoId=" + idEscola + "&jwt=" + userToken,
-		Atendimento: "https://web.escolaapp.com/link/atendimento?contextoId=" + idEscola + "&jwt=" + userToken,
+		Mensagens:   "https://web.escolaapp.com/link/feed?contextoId=" + idEscola + "&jwt=" + tokenParceiro,
+		Agenda:      "https://web.escolaapp.com/link/agenda?contextoId=" + idEscola + "&jwt=" + tokenParceiro,
+		Atendimento: "https://web.escolaapp.com/link/atendimento?contextoId=" + idEscola + "&jwt=" + tokenParceiro,
 		Studos:      "https://plus-app.studos.com.br/auth/psd?jwt=" + userToken,
 	}
 
@@ -323,20 +330,51 @@ func ObterLivros(token string) ([]InfoLivro, error) {
 
 	return LivrosParsados, nil
 
-	/* Exemplo de como ler []InfoLivros:
-	bookInfos, err := pgo.ObterLivros(token)
-	if err != nil {
-		//cuide do erro
-	}
-	for _, book := range bookInfos {
-		fmt.Println("Componente Curricular:", book.ComponenteCurricular)
-		fmt.Println("Volume:", book.Volume)
-		fmt.Println("Tipo:", book.Tipo)
-		fmt.Println("URL:", book.URL)
-		fmt.Println()
-	}
-	*/
+	/*
+	 * Exemplo de como ler []InfoLivros:
+	 * bookInfos, err := pgo.ObterLivros(token)
+	 * if err != nil {
+	 * 	//cuide do erro
+	 * }
+	 * for _, book := range bookInfos {
+	 * 	fmt.Println("Componente Curricular:", book.ComponenteCurricular)
+	 * 	fmt.Println("Volume:", book.Volume)
+	 * 	fmt.Println("Tipo:", book.Tipo)
+	 * 	fmt.Println("URL:", book.URL)
+	 * 	fmt.Println()
+	 * }
+	 */
 
+}
+
+func DadosUsuario(tokenLegada string) (*DadosPrimitivos, error) {
+	/* Primeira parte: Nome & Id na escola */
+	resposta, err := tokenRequest("https://sso.specomunica.com.br/connect/userinfo", "POST", tokenLegada)
+	if err != nil {
+		if strings.Contains(err.Error(), "Status HTTP") {
+			return nil, errors.New("Requisição não autorizada, verifique a token\n" + err.Error())
+		}
+		return nil, err
+	}
+
+	var dados LoginPrimitvoDadosUsuario
+	err = json.Unmarshal(resposta, &dados)
+	if err != nil {
+		return nil, err
+	}
+
+	var dadosEscola LoginPrimitivoDadosEscola
+	err = json.Unmarshal([]byte(dados.LoginPrimitivoDadosEscola), &dadosEscola)
+	if err != nil {
+		return nil, err
+	}
+
+	dadosLegados := &DadosPrimitivos{
+		Nome:            dados.Name,         //Nome do usuário, atualmente somente possivel obter atraves da API legada.
+		IdUsuarioEscola: dadosEscola.UserID, //Id do usuário na escola, útil para saber qual turma o usuário está
+	}
+
+	return dadosLegados, nil
 }
 
 func tokenRequest(url string, method string, token string) ([]byte, error) {
@@ -350,6 +388,7 @@ func tokenRequest(url string, method string, token string) ([]byte, error) {
 
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", "Bearer "+token)
+	req.Header.Add("User-Agent", UserAgent)
 
 	res, err := client.Do(req)
 
@@ -359,7 +398,7 @@ func tokenRequest(url string, method string, token string) ([]byte, error) {
 
 	defer res.Body.Close()
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, errors.New("Não foi possível ler a resposta:" + err.Error())
 	}

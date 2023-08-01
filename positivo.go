@@ -37,6 +37,42 @@ type Schools struct {
 	Roles         []string    `json:"roles"`
 }
 
+/* TYPE DO LOGIN PRIMITIVO */
+
+type LoginPrimitivoDadosEscola struct {
+	ID            string   `json:"id"`
+	IntegrationID string   `json:"integration_id"`
+	UserID        string   `json:"user_id"`
+	Name          string   `json:"name"`
+	Roles         []string `json:"roles"`
+	TimeZone      string   `json:"time_zone"`
+	URL           string   `json:"url"`
+}
+
+type LoginPrimitvoDadosUsuario struct {
+	Sub           string `json:"sub"`
+	AuthTime      int    `json:"auth_time"`
+	Idp           string `json:"idp"`
+	Name          string `json:"name"`
+	Username      string `json:"username"`
+	Email         string `json:"email"`
+	IntegrationID string `json:"integration_id"`
+	Amr           string `json:"amr"`
+	LoginPrimitivoDadosEscola       string `json:"schools"`
+}
+
+type LoginPrimitivoDadosSerie []struct {
+	Value  string   `json:"value"`
+	Label  string   `json:"label"`
+	LoginPrimitivoDadosTurma []Turmas `json:"turmas"`
+}
+
+type LoginPrimitivoDadosTurma struct {
+	NomeTurma   string `json:"nomeTurma"`
+	TurmaValida bool   `json:"turmaValida"`
+	NomeSerie   string `json:"nomeSerie"`
+}
+
 /* TYPES DOS LIVROS */
 type Livro struct {
 	ComponenteCurricular string `json:"componenteCurricular"`
@@ -65,11 +101,23 @@ type Token struct { //Usado para retornar a token do usuário
 	IdUsuario     string
 }
 
+type TokenPrimitiva struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresIn    int    `json:"expires_in"`
+	TokenType    string `json:"token_type"`
+}
+
 type Recursos struct {
 	Mensagens   string
 	Agenda      string
 	Atendimento string
 	Studos      string
+}
+
+type ErroPrimitivo struct {
+	Error            string `json:"error"`
+	ErrorDescription string `json:"error_description"`
 }
 
 var indexDaEscola = 0 //usado apenas quando necessário.
@@ -205,6 +253,50 @@ func Login(username string, password string) (*Token, error) {
 	}
 	res.Body.Close()
 	return token, nil
+}
+
+func LegacyLogin(username string, password string) (*TokenPrimitiva, error) {
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+	}
+
+	req, err := http.NewRequest("POST", "https://sso.specomunica.com.br/connect/token", strings.NewReader("username="+username+"&password="+password+"&grant_type=password&client_id=hubpsd&client_secret=DA5730D8-90FF-4A41-BFED-147B8E0E2A08&scope=openid%20offline_access%20integration_info"))
+	if err != nil {
+		return nil, errors.New("Não foi possível criar a requesição:" + err.Error())
+	}
+
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, errors.New("Não foi possível enviar a requisão:" + err.Error())
+	}
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, errors.New("Não foi possível ler a resposta:" + err.Error())
+	}
+
+	//Verifica se a resposta é valida
+	if res.StatusCode != 200 {
+		//Decompressa a mensagem de erro
+		var errResp ErroPrimitivo
+		json.Unmarshal(body, &errResp)
+		return nil, errors.New("Não foi possível fazer a autenticação: " + errResp.ErrorDescription)
+	}
+	//Decompressa a resposta
+	var token TokenPrimitiva
+	json.Unmarshal(body, &token)
+
+	res.Body.Close()
+	tokenLegada := &TokenPrimitiva {
+		AccessToken: token.AccessToken,
+		RefreshToken: token.RefreshToken,
+		ExpiresIn: token.ExpiresIn,
+		TokenType: token.TokenType
+	}
+	return tokenLegada, nil
 }
 
 func ObterRecursos(idEscola string, userToken string) *Recursos {

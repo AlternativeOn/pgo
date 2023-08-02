@@ -136,7 +136,7 @@ type ErroSenha struct {
 var indexDaEscola = 0 //usado apenas quando necessário.
 const version = "2.1.2"
 
-var UserAgent = fmt.Sprintf("Mozilla/5.0 (%v; %v); pgo/%v (%v; %v); +(https://github.com/alternativeon/pgo)", runtime.GOOS, runtime.GOARCH, version, runtime.Compiler, runtime.Version())
+var userAgent = fmt.Sprintf("Mozilla/5.0 (%v; %v); pgo/%v (%v; %v); +(https://github.com/alternativeon/pgo)", runtime.GOOS, runtime.GOARCH, version, runtime.Compiler, runtime.Version())
 
 func Login(username string, password string) (*Token, error) {
 	/* PRIMEIRA PARTE DO LOGIN
@@ -163,7 +163,7 @@ func Login(username string, password string) (*Token, error) {
 	}
 
 	req.Header.Add("Content-Type", writer.FormDataContentType())
-	req.Header.Add("User-Agent", UserAgent)
+	req.Header.Add("User-Agent", userAgent)
 
 	res, err := client.Do(req)
 
@@ -383,8 +383,8 @@ func DadosUsuario(tokenLegada string) (*DadosPrimitivos, error) {
 	return dadosLegados, nil
 }
 
-func resetarSenha(userinfo string) (*ErroSenha, error) {
-	retornoPedido, err := payloadRequest("https://apihub.positivoon.com.br/api/Login/request-new-password", "POST", fmt.Sprintf("{'userInfo': '%v'}", userinfo))
+func ResetarSenha(userInfo string) (*ErroSenha, error) {
+	retornoPedido, err := payloadRequest("https://apihub.positivoon.com.br/api/Login/request-new-password", "POST", fmt.Sprintf("{'userInfo': '%v'}", userInfo))
 	if err != nil {
 		return nil, err
 	}
@@ -420,7 +420,7 @@ func tokenRequest(url string, method string, token string) ([]byte, error) {
 
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", "Bearer "+token)
-	req.Header.Add("User-Agent", UserAgent)
+	req.Header.Add("User-Agent", userAgent)
 
 	res, err := client.Do(req)
 
@@ -455,7 +455,7 @@ func payloadRequest(url string, method string, payload string) ([]byte, error) {
 	}
 
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("User-Agent", UserAgent)
+	req.Header.Add("User-Agent", userAgent)
 
 	res, err := client.Do(req)
 

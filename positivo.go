@@ -127,8 +127,14 @@ type ErroPrimitivo struct {
 	ErrorDescription string `json:"error_description"`
 }
 
+type ErroSenha struct {
+	Erro     bool   `json:"error"`
+	Conteudo bool   `json:"content"`
+	Mensagem string `json:"errorMessage"`
+}
+
 var indexDaEscola = 0 //usado apenas quando necessário.
-const version = "2.1.0"
+const version = "2.1.1"
 
 var UserAgent = fmt.Sprintf("Mozilla/5.0 (%v; %v); pgo/%v (%v; %v); +(https://github.com/alternativeon/pgo)", runtime.GOOS, runtime.GOARCH, version, runtime.Compiler, runtime.Version())
 
@@ -377,8 +383,34 @@ func DadosUsuario(tokenLegada string) (*DadosPrimitivos, error) {
 	return dadosLegados, nil
 }
 
+func resetarSenha(userinfo string) (*ErroSenha, error) {
+	retornoPedido, err := payloadRequest("https://apihub.positivoon.com.br/api/Login/request-new-password", "POST", fmt.Sprintf("{'userInfo': '%v'}", userinfo))
+	if err != nil {
+		return nil, err
+	}
+
+	var resultadoSenha ErroSenha
+	err = json.Unmarshal(retornoPedido, &resultadoSenha)
+	if err != nil {
+		return nil, err
+	}
+
+	if !resultadoSenha.Erro {
+		return nil, errors.New(resultadoSenha.Mensagem)
+	}
+
+	senhaOk := &ErroSenha{
+		Mensagem: resultadoSenha.Mensagem,
+		Conteudo: resultadoSenha.Conteudo,
+		Erro:     resultadoSenha.Erro,
+	}
+	return senhaOk, nil
+}
+
 func tokenRequest(url string, method string, token string) ([]byte, error) {
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+	}
 
 	req, err := http.NewRequest(method, url, nil)
 
@@ -388,6 +420,41 @@ func tokenRequest(url string, method string, token string) ([]byte, error) {
 
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", "Bearer "+token)
+	req.Header.Add("User-Agent", UserAgent)
+
+	res, err := client.Do(req)
+
+	if err != nil {
+		return nil, errors.New("Não foi possível enviar a requisão:" + err.Error())
+	}
+
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, errors.New("Não foi possível ler a resposta:" + err.Error())
+	}
+
+	if res.StatusCode != 200 {
+		return nil, errors.New("Não foi possível fazer a autenticação!\nStatus HTTP: " + fmt.Sprint(res.StatusCode))
+	}
+
+	res.Body.Close()
+	return body, nil
+}
+
+func payloadRequest(url string, method string, payload string) ([]byte, error) {
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+	}
+
+	req, err := http.NewRequest(method, url, strings.NewReader(payload))
+
+	if err != nil {
+		return nil, errors.New("Não foi possível criar a requesição:" + err.Error())
+	}
+
+	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("User-Agent", UserAgent)
 
 	res, err := client.Do(req)

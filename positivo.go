@@ -134,7 +134,7 @@ type ErroSenha struct {
 }
 
 var indexDaEscola = 0 //usado apenas quando necessário.
-const version = "2.1.1"
+const version = "2.1.2"
 
 var UserAgent = fmt.Sprintf("Mozilla/5.0 (%v; %v); pgo/%v (%v; %v); +(https://github.com/alternativeon/pgo)", runtime.GOOS, runtime.GOARCH, version, runtime.Compiler, runtime.Version())
 

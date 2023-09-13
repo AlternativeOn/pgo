@@ -93,6 +93,25 @@ type InfoLivro struct {
 	URL                  string `json:"caminho"`
 }
 
+type Item struct {
+	ID                   string `json:"id"`
+	Colecao              string `json:"colecao"`
+	Serie                string `json:"serie"`
+	ComponenteCurricular string `json:"componenteCurricular"`
+	Volume               string `json:"volume"`
+	Capa                 string `json:"capa"`
+	NivelEnsinoBase      string `json:"nivelEnsinoBase"`
+	SerieBase            string `json:"serieBase"`
+	Estante              string `json:"estante"`
+	URL                  string `json:"caminho"`
+	Tipo                 string `json:"tipo"`
+	Arquivos             []struct {
+		IDArquivo string `json:"idArquivo"`
+		Tipo      string `json:"tipo"`
+		Caminho   string `json:"caminho"`
+	} `json:"arquivos"`
+}
+
 /* TYPES DA LIBRARY */
 
 type Token struct { //Usado para retornar a token do usuário
@@ -134,7 +153,7 @@ type ErroSenha struct {
 }
 
 var indexDaEscola = 0 //usado apenas quando necessário.
-const version = "2.1.2"
+const version = "2.2.0"
 
 var userAgent = fmt.Sprintf("Mozilla/5.0 (%v; %v); pgo/%v (%v; %v); +(https://github.com/alternativeon/pgo)", runtime.GOOS, runtime.GOARCH, version, runtime.Compiler, runtime.Version())
 
@@ -184,7 +203,7 @@ func Login(username string, password string) (*Token, error) {
 	//Outros códigos HTTP de possivel retorno é 401 (usuário/senha errada) ou 500
 	//Implemente no front-end uma verificação do código HTTP.
 	if res.StatusCode != 200 {
-		return nil, errors.New("Não foi possível fazer a autenticação!\nStatus HTTP: " + fmt.Sprint(res.StatusCode))
+		return nil, errors.New("Não foi possível fazer a autenticação!\nStatus HTTP: " + fmt.Sprint(res.StatusCode) + "\n" + string(body))
 	}
 	//Lê a resposta
 	var respDoPrimeiroLogin LoginUsuario
@@ -323,36 +342,6 @@ func ObterRecursos(idEscola string, userToken string, tokenParceiro string) *Rec
 	return msg
 }
 
-func ObterLivros(token string) ([]InfoLivro, error) {
-	JsonBody, err := tokenRequest("https://livro-digital-estante.prd.positivoon.com.br/v3/livros", "GET", token)
-	if err != nil {
-		return nil, err
-	}
-
-	LivrosParsados, err := ExtrairInfoLivros(JsonBody)
-	if err != nil {
-		return nil, err
-	}
-
-	return LivrosParsados, nil
-
-	/*
-	 * Exemplo de como ler []InfoLivros:
-	 * bookInfos, err := pgo.ObterLivros(token)
-	 * if err != nil {
-	 * 	//cuide do erro
-	 * }
-	 * for _, book := range bookInfos {
-	 * 	fmt.Println("Componente Curricular:", book.ComponenteCurricular)
-	 * 	fmt.Println("Volume:", book.Volume)
-	 * 	fmt.Println("Tipo:", book.Tipo)
-	 * 	fmt.Println("URL:", book.URL)
-	 * 	fmt.Println()
-	 * }
-	 */
-
-}
-
 func DadosUsuario(tokenLegada string) (*DadosPrimitivos, error) {
 	/* Primeira parte: Nome & Id na escola */
 	resposta, err := tokenRequest("https://sso.specomunica.com.br/connect/userinfo", "POST", tokenLegada)
@@ -383,8 +372,63 @@ func DadosUsuario(tokenLegada string) (*DadosPrimitivos, error) {
 	return dadosLegados, nil
 }
 
-func ResetarSenha(userInfo string) (*ErroSenha, error) {
-	retornoPedido, err := payloadRequest("https://apihub.positivoon.com.br/api/Login/request-new-password", "POST", fmt.Sprintf("{'userInfo': '%v'}", userInfo))
+func ObterLivros(token string) ([]Item, error) {
+	JsonBody, err := tokenRequest("https://livro-digital-estante.prd.positivoon.com.br/v3/livros", "GET", token)
+	if err != nil {
+		return nil, err
+	}
+	var items []struct {
+		Item
+		URL  string `json:"caminho"`
+		Tipo string `json:"tipo"`
+	}
+	err = json.Unmarshal([]byte(JsonBody), &items)
+	if err != nil {
+		return nil, err
+	}
+
+	var filteredItems []Item
+	for _, item := range items {
+		if len(item.Arquivos) > 0 {
+			filteredItem := Item{
+				ID:                   item.ID,
+				Colecao:              item.Colecao,
+				Serie:                item.Serie,
+				ComponenteCurricular: item.ComponenteCurricular,
+				Volume:               item.Volume,
+				Capa:                 item.Capa,
+				NivelEnsinoBase:      item.NivelEnsinoBase,
+				SerieBase:            item.SerieBase,
+				Estante:              item.Estante,
+				URL:                  item.Arquivos[0].Caminho,
+				Tipo:                 item.Arquivos[0].Tipo,
+			}
+			filteredItems = append(filteredItems, filteredItem)
+		}
+	}
+
+	return filteredItems, nil
+
+	/*
+	 * Exemplo de como ler []Item:
+	 * bookInfos, err := pgo.ObterLivros(token)
+	 * if err != nil {
+	 * 	//cuide do erro
+	 * }
+	 * for _, book := range bookInfos {
+	 * 	fmt.Println("Componente Curricular:", book.ComponenteCurricular)
+	 * 	fmt.Println("Volume:", book.Volume)
+	 * 	fmt.Println("Tipo:", book.Tipo)
+	 * 	fmt.Println("URL:", book.URL)
+	 * 	fmt.Println()
+	 * }
+	 */
+}
+
+func RecuperarSenha(userInfo string) (*ErroSenha, error) {
+	payload := fmt.Sprintf("{\"userInfo\": \"%v\"}", userInfo)
+	fmt.Println("Payload:", payload)
+	retornoPedido, err := payloadRequest("https://apihub.positivoon.com.br/api/Login/request-new-password", "POST", payload)
 	if err != nil {
 		return nil, err
 	}
@@ -407,7 +451,35 @@ func ResetarSenha(userInfo string) (*ErroSenha, error) {
 	return senhaOk, nil
 }
 
-func tokenRequest(url string, method string, token string) ([]byte, error) {
+func AlterarSenha(antigaSenha, novaSenha, token string) (*ErroSenha, error) {
+	if antigaSenha == novaSenha {
+		return nil, errors.New("A nova e antiga senha são iguais!")
+	}
+	payload := fmt.Sprintf("{\"oldPassword\":\"%s\",\"newPassword\":\"%s\",\"confirmNewPassword\":\"%s\"}", antigaSenha, novaSenha, novaSenha)
+	senhaResponse, err := tokenWithPayloadRequest("https://apihub.positivoon.com.br/api/login/change-password", "PUT", token, payload)
+	if err != nil {
+		return nil, err
+	}
+	var resultadoSenha ErroSenha
+	err = json.Unmarshal(senhaResponse, &resultadoSenha)
+	if err != nil {
+		return nil, err
+	}
+
+	if !resultadoSenha.Erro {
+		return nil, errors.New("Algo deu errado, tente novamente mais tarde")
+	}
+
+	senhaOk := &ErroSenha{
+		Mensagem: "Senha alterada para" + novaSenha,
+		Erro:     resultadoSenha.Erro,
+		Conteudo: resultadoSenha.Conteudo,
+	}
+	return senhaOk, nil
+
+}
+
+func tokenRequest(url, method, token string) ([]byte, error) {
 	client := &http.Client{
 		Timeout: 15 * time.Second,
 	}
@@ -415,7 +487,7 @@ func tokenRequest(url string, method string, token string) ([]byte, error) {
 	req, err := http.NewRequest(method, url, nil)
 
 	if err != nil {
-		return nil, errors.New("Não foi possível criar a requesição:" + err.Error())
+		return nil, fmt.Errorf("Verifique a conexão com a internet.\n%v", err)
 	}
 
 	req.Header.Add("Content-Type", "application/json")
@@ -425,7 +497,7 @@ func tokenRequest(url string, method string, token string) ([]byte, error) {
 	res, err := client.Do(req)
 
 	if err != nil {
-		return nil, errors.New("Não foi possível enviar a requisão:" + err.Error())
+		return nil, fmt.Errorf("Verifique a conexão com a internet.\n%v", err)
 	}
 
 	defer res.Body.Close()
@@ -443,7 +515,7 @@ func tokenRequest(url string, method string, token string) ([]byte, error) {
 	return body, nil
 }
 
-func payloadRequest(url string, method string, payload string) ([]byte, error) {
+func tokenWithPayloadRequest(url, method, token, payload string) ([]byte, error) {
 	client := &http.Client{
 		Timeout: 15 * time.Second,
 	}
@@ -451,7 +523,43 @@ func payloadRequest(url string, method string, payload string) ([]byte, error) {
 	req, err := http.NewRequest(method, url, strings.NewReader(payload))
 
 	if err != nil {
-		return nil, errors.New("Não foi possível criar a requesição:" + err.Error())
+		return nil, fmt.Errorf("Verifique a conexão com a internet.\n%v", err)
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+token)
+	req.Header.Add("User-Agent", userAgent)
+
+	res, err := client.Do(req)
+
+	if err != nil {
+		return nil, fmt.Errorf("Verifique a conexão com a internet.\n%v", err)
+	}
+
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, errors.New("Não foi possível ler a resposta:" + err.Error())
+	}
+
+	if res.StatusCode != 200 {
+		return nil, errors.New("Não foi possível fazer a autenticação!\nStatus HTTP: " + fmt.Sprint(res.StatusCode))
+	}
+
+	res.Body.Close()
+	return body, nil
+}
+
+func payloadRequest(url, method, payload string) ([]byte, error) {
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+	}
+
+	req, err := http.NewRequest(method, url, strings.NewReader(payload))
+
+	if err != nil {
+		return nil, fmt.Errorf("Verifique a conexão com a internet.\n%v", err)
 	}
 
 	req.Header.Add("Content-Type", "application/json")
@@ -460,7 +568,7 @@ func payloadRequest(url string, method string, payload string) ([]byte, error) {
 	res, err := client.Do(req)
 
 	if err != nil {
-		return nil, errors.New("Não foi possível enviar a requisão:" + err.Error())
+		return nil, fmt.Errorf("Verifique a conexão com a internet.\n%v", err)
 	}
 
 	defer res.Body.Close()
@@ -471,35 +579,10 @@ func payloadRequest(url string, method string, payload string) ([]byte, error) {
 	}
 
 	if res.StatusCode != 200 {
-		return nil, errors.New("Não foi possível fazer a autenticação!\nStatus HTTP: " + fmt.Sprint(res.StatusCode))
+		fmt.Println(string(body))
+		return nil, fmt.Errorf("status http: %v", res.StatusCode)
 	}
 
 	res.Body.Close()
 	return body, nil
-}
-
-func ExtrairInfoLivros(jsonData []byte) ([]InfoLivro, error) {
-	var books []InfoLivro
-
-	var rawBooks []map[string]interface{}
-	err := json.Unmarshal(jsonData, &rawBooks)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, rawBook := range rawBooks {
-		arquivos := rawBook["arquivos"].([]interface{})
-		if len(arquivos) > 0 {
-			arquivo := arquivos[0].(map[string]interface{})
-			book := InfoLivro{
-				ComponenteCurricular: rawBook["componenteCurricular"].(string),
-				Volume:               rawBook["volume"].(string),
-				Tipo:                 arquivo["tipo"].(string),
-				URL:                  arquivo["caminho"].(string),
-			}
-			books = append(books, book)
-		}
-	}
-
-	return books, nil
 }
